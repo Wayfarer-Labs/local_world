@@ -15,7 +15,7 @@ jobs:
       - name: Ensure 7-Zip is available
         shell: pwsh
         run: |
-          $sevenZip = "${env:ProgramFiles}\7-Zip\7z.exe"
+          $sevenZip = Join-Path ${env:ProgramFiles} '7-Zip\7z.exe'
           if (-not (Test-Path $sevenZip)) {
             choco install 7zip -y
           }
@@ -31,30 +31,29 @@ jobs:
       - name: Build self-extracting EXE (7-Zip SFX)
         shell: pwsh
         run: |
-          $stage    = (Resolve-Path dist\stage).Path
-          $sevenZip = "${env:ProgramFiles}\7-Zip\7z.exe"
-          $sfxA     = "${env:ProgramFiles}\7-Zip\7z.sfx"
-          $sfxB     = "${env:ProgramFiles}\7-Zip\7zCon.sfx"
-          $sfx      = (Test-Path $sfxA) ? $sfxA : $sfxB
+          $stage    = (Resolve-Path 'dist\stage').Path
+          $sevenZip = Join-Path ${env:ProgramFiles} '7-Zip\7z.exe'
 
-          if (-not (Test-Path $sevenZip)) { throw "7z.exe not found" }
-          if (-not (Test-Path $sfx))     { throw "7z SFX module not found" }
+          $sfx = Join-Path ${env:ProgramFiles} '7-Zip\7z.sfx'
+          if (-not (Test-Path $sfx)) {
+            $sfx = Join-Path ${env:ProgramFiles} '7-Zip\7zCon.sfx'
+          }
+
+          if (-not (Test-Path $sevenZip)) { throw "7z.exe not found at $sevenZip" }
+          if (-not (Test-Path $sfx))     { throw "7z SFX module not found (expected 7z.sfx or 7zCon.sfx)" }
 
           Push-Location $stage
+
           & $sevenZip a -t7z payload.7z * | Out-Host
 
-          @'
+          @"
 ;!@Install@!UTF-8!
 Title="LocalWorld"
 RunProgram="LocalWorld.cmd"
 ;!@InstallEnd@!
-'@ | Set-Content -Encoding utf8 config.txt
+"@ | Set-Content -Encoding utf8 config.txt
 
-          cmd /c "copy /b `"$sfx`"+config.txt+payload.7z LocalWorld.exe"
-          Pop-Location
+          cmd /c "copy /b `"$sfx`"+config.txt+payload.7z LocalWorld.exe" | Out-Host
 
-      - name: Upload exe
-        uses: actions/upload-artifact@v4
-        with:
-          name: LocalWorld
-          path: dist/stage/LocalWorld.exe
+          Write-Host "Stage contents:"
+          Get-Chi
