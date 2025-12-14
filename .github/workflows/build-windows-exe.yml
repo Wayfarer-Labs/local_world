@@ -1,0 +1,85 @@
+name: build-windows-exe
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ["v*"]
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: prefix-dev/setup-pixi@v0.8.3
+        with:
+          cache: true
+
+      - name: Build wheel
+        shell: pwsh
+        run: |
+          python -m pip install --upgrade pip build
+          python -m build --wheel
+
+      - name: Lock + install env (so pixi.lock exists and deps resolve)
+        shell: pwsh
+        run: |
+          pixi lock --platform win-64
+          pixi install
+
+      - name: Create portable environment.ps1 (pixi-pack)
+        shell: pwsh
+        run: |
+          pixi exec --spec "pixi-pack" pixi-pack --create-executable --platform win-64 pixi.toml
+
+      - name: Stage files
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force dist\stage | Out-Null
+          Copy-Item environment.ps1 dist\stage\
+          Copy-Item packaging\RunFoo.cmd dist\stage\
+          Copy-Item (Get-ChildItem dist\*.whl | Select-Object -First 1).FullName dist\stage\app.whl
+
+      - name: Build single EXE with IExpress
+        shell: pwsh
+        run: |
+          $stage = (Resolve-Path dist\stage).Path
+          $sed   = Join-Path $stage "foo.sed"
+          $out   = Join-Path $stage "FooPortable-cu128.exe"
+
+          @"
+[Version]
+Class=IExpress
+SEDVersion=3
+[Options]
+PackagePurpose=InstallApp
+ShowInstallProgramWindow=0
+HideExtractAnimation=1
+UseLongFileName=1
+InsideCompressed=1
+RebootMode=N
+InstallPrompt=
+DisplayLicense=
+FinishMessage=
+FriendlyName=Foo Portable (cu128)
+TargetName=$out
+AppLaunched=cmd.exe /c RunFoo.cmd
+SourceFiles=SourceFiles
+
+[SourceFiles]
+SourceFiles0=$stage
+
+[SourceFiles0]
+RunFoo.cmd
+environment.ps1
+app.whl
+"@ | Set-Content -Encoding ASCII $sed
+
+          & "$env:WINDIR\System32\IExpress.exe" /N $sed
+
+      - name: Upload exe
+        uses: actions/upload-artifact@v4
+        with:
+          name: FooPortable-cu128
+          path: dist/stage/FooPortable-cu128.exe
