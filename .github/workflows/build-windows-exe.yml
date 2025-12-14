@@ -12,26 +12,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: prefix-dev/setup-pixi@v0.8.3
-        with:
-          cache: false
-
-      - name: Build wheel
+      - name: Ensure 7-Zip is available
         shell: pwsh
         run: |
-          python -m pip install --upgrade pip build
-          python -m build --wheel
-
-      - name: Lock + install env (so pixi.lock exists and deps resolve)
-        shell: pwsh
-        run: |
-          pixi lock
-          pixi install
-
-      - name: Create portable environment.ps1 (pixi-pack)
-        shell: pwsh
-        run: |
-          pixi exec --spec "pixi-pack" pixi-pack --create-executable --platform win-64 pixi.toml
+          $sevenZip = "${env:ProgramFiles}\7-Zip\7z.exe"
+          if (-not (Test-Path $sevenZip)) {
+            choco install 7zip -y
+          }
 
       - name: Stage files
         shell: pwsh
@@ -39,46 +26,32 @@ jobs:
           New-Item -ItemType Directory -Force dist\stage | Out-Null
           Copy-Item packaging\LocalWorld.cmd dist\stage\
           Copy-Item pixi.toml dist\stage\
-          if (Test-Path pixi.lock) { Copy-Item pixi.lock dist\stage\ }
           Copy-Item src\client.py dist\stage\client.py
 
-      - name: Build single EXE with IExpress
+      - name: Build self-extracting EXE (7-Zip SFX)
         shell: pwsh
         run: |
-          $stage = (Resolve-Path dist\stage).Path
-          $sed   = Join-Path $stage "foo.sed"
-          $out   = Join-Path $stage "LocalWorld.exe"
+          $stage    = (Resolve-Path dist\stage).Path
+          $sevenZip = "${env:ProgramFiles}\7-Zip\7z.exe"
+          $sfxA     = "${env:ProgramFiles}\7-Zip\7z.sfx"
+          $sfxB     = "${env:ProgramFiles}\7-Zip\7zCon.sfx"
+          $sfx      = (Test-Path $sfxA) ? $sfxA : $sfxB
 
-          @"
-          [Version]
-          Class=IExpress
-          SEDVersion=3
-          [Options]
-          PackagePurpose=InstallApp
-          ShowInstallProgramWindow=0
-          HideExtractAnimation=1
-          UseLongFileName=1
-          InsideCompressed=1
-          RebootMode=N
-          InstallPrompt=
-          DisplayLicense=
-          FinishMessage=
-          FriendlyName=LocalWorld
-          TargetName=$out
-          AppLaunched=cmd.exe /c LocalWorld.cmd
-          SourceFiles=SourceFiles
+          if (-not (Test-Path $sevenZip)) { throw "7z.exe not found" }
+          if (-not (Test-Path $sfx))     { throw "7z SFX module not found" }
 
-          [SourceFiles]
-          SourceFiles0=$stage
+          Push-Location $stage
+          & $sevenZip a -t7z payload.7z * | Out-Host
 
-          [SourceFiles0]
-          LocalWorld.cmd
-          pixi.toml
-          pixi.lock
-          client.py
-          "@ | Set-Content -Encoding ASCII $sed
+          @'
+;!@Install@!UTF-8!
+Title="LocalWorld"
+RunProgram="LocalWorld.cmd"
+;!@InstallEnd@!
+'@ | Set-Content -Encoding utf8 config.txt
 
-          & "$env:WINDIR\System32\IExpress.exe" /N $sed
+          cmd /c "copy /b `"$sfx`"+config.txt+payload.7z LocalWorld.exe"
+          Pop-Location
 
       - name: Upload exe
         uses: actions/upload-artifact@v4

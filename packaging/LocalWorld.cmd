@@ -1,14 +1,10 @@
 @echo off
 setlocal
+cd /d %~dp0
+
 set "APP=%LOCALAPPDATA%\LocalWorld"
 if not exist "%APP%" mkdir "%APP%"
 
-REM Copy manifests + app code from the extracted folder into a persistent folder
-copy /Y "%~dp0pixi.toml" "%APP%\pixi.toml" >nul
-if exist "%~dp0pixi.lock" copy /Y "%~dp0pixi.lock" "%APP%\pixi.lock" >nul
-copy /Y "%~dp0client.py" "%APP%\client.py" >nul
-
-REM Keep pixi state/cache local to the app folder
 set "PIXI_HOME=%APP%\.pixi-home"
 set "PIXI_CACHE_DIR=%APP%\.pixi-cache"
 set "PIXI=%APP%\pixi.exe"
@@ -24,12 +20,10 @@ if not exist "%PIXI%" (
     "Remove-Item $zip -Force"
 )
 
+copy /Y "%~dp0pixi.toml" "%APP%\pixi.toml" >nul
+copy /Y "%~dp0client.py" "%APP%\client.py" >nul
+
 pushd "%APP%"
-if exist pixi.lock (
-  "%PIXI%" install --locked --manifest-path pixi.toml || exit /b 1
-  "%PIXI%" run --locked --manifest-path pixi.toml python client.py
-) else (
-  "%PIXI%" install --manifest-path pixi.toml || exit /b 1
-  "%PIXI%" run --manifest-path pixi.toml python client.py
-)
+"%PIXI%" install --manifest-path pixi.toml || exit /b 1
+"%PIXI%" run --manifest-path pixi.toml python client.py
 popd
