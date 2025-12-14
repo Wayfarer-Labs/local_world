@@ -37,16 +37,17 @@ jobs:
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force dist\stage | Out-Null
-          Copy-Item environment.ps1 dist\stage\
           Copy-Item packaging\LocalWorld.cmd dist\stage\
-          Copy-Item (Get-ChildItem dist\*.whl | Select-Object -First 1).FullName dist\stage\app.whl
+          Copy-Item pixi.toml dist\stage\
+          if (Test-Path pixi.lock) { Copy-Item pixi.lock dist\stage\ }
+          Copy-Item src\client.py dist\stage\client.py
 
       - name: Build single EXE with IExpress
         shell: pwsh
         run: |
           $stage = (Resolve-Path dist\stage).Path
           $sed   = Join-Path $stage "foo.sed"
-          $out   = Join-Path $stage "LocalWorld-cu128.exe"
+          $out   = Join-Path $stage "LocalWorld.exe"
 
           @"
           [Version]
@@ -62,7 +63,7 @@ jobs:
           InstallPrompt=
           DisplayLicense=
           FinishMessage=
-          FriendlyName=LocalWorld (cu128)
+          FriendlyName=LocalWorld
           TargetName=$out
           AppLaunched=cmd.exe /c LocalWorld.cmd
           SourceFiles=SourceFiles
@@ -72,8 +73,9 @@ jobs:
 
           [SourceFiles0]
           LocalWorld.cmd
-          environment.ps1
-          app.whl
+          pixi.toml
+          pixi.lock
+          client.py
           "@ | Set-Content -Encoding ASCII $sed
 
           & "$env:WINDIR\System32\IExpress.exe" /N $sed
@@ -82,4 +84,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: LocalWorld
-          path: dist/stage/LocalWorld-cu128.exe
+          path: dist/stage/LocalWorld.exe
