@@ -82,4 +82,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: LocalWorld
-          path: dist/stage/LocalWorld.exe
+          path: dist/stage/LocalWorld-cu128.exe
