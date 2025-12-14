@@ -49,37 +49,31 @@ jobs:
           $out   = Join-Path $stage "FooPortable-cu128.exe"
 
           @"
-[Version]
-Class=IExpress
-SEDVersion=3
-[Options]
-PackagePurpose=InstallApp
-ShowInstallProgramWindow=0
-HideExtractAnimation=1
-UseLongFileName=1
-InsideCompressed=1
-RebootMode=N
-InstallPrompt=
-DisplayLicense=
-FinishMessage=
-FriendlyName=Foo Portable (cu128)
-TargetName=$out
-AppLaunched=cmd.exe /c RunFoo.cmd
-SourceFiles=SourceFiles
+          [Version]
+          Class=IExpress
+          SEDVersion=3
+          [Options]
+          PackagePurpose=InstallApp
+          ShowInstallProgramWindow=0
+          HideExtractAnimation=1
+          UseLongFileName=1
+          InsideCompressed=1
+          RebootMode=N
+          InstallPrompt=
+          DisplayLicense=
+          FinishMessage=
+          FriendlyName=Foo Portable (cu128)
+          TargetName=$out
+          AppLaunched=cmd.exe /c RunFoo.cmd
+          SourceFiles=SourceFiles
 
-[SourceFiles]
-SourceFiles0=$stage
+          [SourceFiles]
+          SourceFiles0=$stage
 
-[SourceFiles0]
-RunFoo.cmd
-environment.ps1
-app.whl
-"@ | Set-Content -Encoding ASCII $sed
+          [SourceFiles0]
+          RunFoo.cmd
+          environment.ps1
+          app.whl
+          "@ | Set-Content -Encoding ASCII $sed
 
           & "$env:WINDIR\System32\IExpress.exe" /N $sed
-
-      - name: Upload exe
-        uses: actions/upload-artifact@v4
-        with:
-          name: FooPortable-cu128
-          path: dist/stage/FooPortable-cu128.exe
