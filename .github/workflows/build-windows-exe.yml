@@ -25,7 +25,7 @@ jobs:
       - name: Lock + install env (so pixi.lock exists and deps resolve)
         shell: pwsh
         run: |
-          pixi lock --platform win-64
+          pixi lock
           pixi install
 
       - name: Create portable environment.ps1 (pixi-pack)
