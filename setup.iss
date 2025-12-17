@@ -15,26 +15,12 @@ SolidCompression=yes
 
 [Files]
 Source: "installer\pixi.exe"; DestDir: "{app}"; Flags: ignoreversion
-Source: "pyproject.toml";     DestDir: "{app}"; Flags: ignoreversion
-Source: "pixi.lock";          DestDir: "{app}"; Flags: ignoreversion
+Source: "pixi.toml";          DestDir: "{app}"; Flags: ignoreversion
 Source: "src\*";              DestDir: "{app}\src"; Flags: recursesubdirs createallsubdirs ignoreversion
 
 [Icons]
-Name: "{group}\{#MyAppName}";
-Filename: "{app}\pixi.exe";
-Parameters: "run client --manifest-path pyproject.toml";
-WorkingDir: "{app}"
+Name: "{group}\{#MyAppName}"; Filename: "{app}\pixi.exe"; Parameters: "run client --manifest-path ""{app}\pixi.toml"""; WorkingDir: "{app}"
 
 [Run]
-; Install exactly from the shipped lockfile (don’t update it). :contentReference[oaicite:4]{index=4}
-Filename: "{app}\pixi.exe";
-Parameters: "install --frozen --manifest-path pyproject.toml";
-WorkingDir: "{app}";
-Flags: waituntilterminated runhidden;
-StatusMsg: "Installing Python environment (pixi)…"
-
-; Optional “launch at end”
-Filename: "{app}\pixi.exe";
-Parameters: "run client --manifest-path pyproject.toml";
-WorkingDir: "{app}";
-Flags: nowait postinstall skipifsilent
+Filename: "{app}\pixi.exe"; Parameters: "install --manifest-path ""{app}\pixi.toml"""; WorkingDir: "{app}"; Flags: waituntilterminated runhidden; StatusMsg: "Installing Python environment (pixi)…"
+Filename: "{app}\pixi.exe"; Parameters: "run client --manifest-path ""{app}\pixi.toml"""; WorkingDir: "{app}"; Flags: nowait postinstall skipifsilent
