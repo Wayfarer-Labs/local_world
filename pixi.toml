@@ -18,6 +18,7 @@ index-strategy = "unsafe-best-match"
 
 [pypi-dependencies]
 world_engine = { url = "https://github.com/Wayfarer-Labs/world_engine/archive/refs/heads/main.zip" }
+pygame = "*"
 
 [tasks]
 client = "python src/client.py"
