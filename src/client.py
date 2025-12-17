@@ -77,7 +77,7 @@ async def ctrl_stream(restart_event: asyncio.Event, mouse_sensitivity: float = 1
         {("k", pygame.key.key_code(ch)): ord(ch.upper()) for ch in "wasdr"} |  # optionally "f"
         {("k", pygame.K_SPACE): ord(" ")} |
         {("k", pygame.K_LSHIFT): 0x10, ("k", pygame.K_RSHIFT): 0x10} |
-        {("m", 1): 0x01, ("m", 2): 0x04, ("m", 3): 0x02}
+        {("m", 1): 0x01, ("m", 2): 0x04, ("m", 3): 0x02}  # note: pygame has middle wheel as m2
     )
 
     while True:
