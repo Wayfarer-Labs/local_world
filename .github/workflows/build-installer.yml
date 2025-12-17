@@ -3,6 +3,7 @@ name: build-windows-installer
 on:
   workflow_dispatch:
   push:
+    branches: ["main"]
     tags: ["v*"]
 
 jobs:
@@ -48,8 +49,12 @@ jobs:
           name: windows-installer
           path: dist/*.exe
 
-      - name: Attach installer to GitHub Release (tags only)
+      - name: Attach installer to GitHub Release
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ github.ref_type == 'tag' && github.ref_name || format('nightly-{0}', github.run_number) }}
+          target_commitish: ${{ github.sha }}
+          prerelease: ${{ github.ref_type != 'tag' }}
+          generate_release_notes: true
           files: dist/*.exe
