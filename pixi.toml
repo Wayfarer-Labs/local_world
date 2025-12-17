@@ -6,16 +6,18 @@ platforms = ["win-64"]
 [dependencies]
 python = "3.10.*"
 pip = "*"
+git = "*"   # strongly recommended for git deps on Windows
 
 [pypi-options]
-no-build = true
+index-url = "https://download.pytorch.org/whl/test/cu128"
+extra-index-urls = [
+  "https://download.pytorch.org/whl/nightly/cu128",
+  "https://pypi.org/simple",
+]
+index-strategy = "unsafe-best-match"
 
 [pypi-dependencies]
-torch = { version = "==2.9.0", index = "https://download.pytorch.org/whl/cu128" }
-torchvision = { version = "==0.24.0", index = "https://download.pytorch.org/whl/cu128" }
-torchaudio = { version = "==2.9.0", index = "https://download.pytorch.org/whl/cu128" }
+world_engine = { git = "https://github.com/Wayfarer-Labs/world_engine.git" }
 
-torchao = "*"
-xformers = "*"
-numpy = "*"
-opencv-python = "*"
+[tasks]
+client = "python src/client.py"
