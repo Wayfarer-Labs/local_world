@@ -17,7 +17,7 @@ extra-index-urls = [
 index-strategy = "unsafe-best-match"
 
 [pypi-dependencies]
-world_engine = { git = "https://github.com/Wayfarer-Labs/world_engine.git" }
+world_engine = { url = "https://github.com/Wayfarer-Labs/world_engine/archive/refs/heads/main.zip" }
 
 [tasks]
 client = "python src/client.py"
