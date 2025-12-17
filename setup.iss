@@ -1,4 +1,4 @@
-#define MyAppName "MyApp"
+#define MyAppName "LocalWorld"
 #define MyAppVersion "0.1.0"
 
 [Setup]
