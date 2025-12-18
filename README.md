@@ -1,12 +1,10 @@
 <div align="center">
 
-# 🌎 OverWorld Local Client
+# 🛸 LocalWorld
 
 </div>
 
-## Overview
-
-OverWorld Local Client
+OverWorld's local gameplay client.
 
 ## Requirements
 
