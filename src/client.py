@@ -10,7 +10,7 @@ import torch
 import torch.nn.functional as F
 import torchvision
 
-from world_engine import WorldEngine, CtrlInput
+from world_engine import WorldEngine, CtrlInput, QUANTS
 
 
 def fetch_model_uris(collection_uri: str = "OpenWorldLabs/nightly") -> list[str]:
@@ -28,11 +28,12 @@ def fetch_model_uris(collection_uri: str = "OpenWorldLabs/nightly") -> list[str]
     return list(reversed(models))
 
 
-def launch_form(*, title: str = "World Engine") -> str | None:
+def launch_form(*, title: str = "World Engine") -> tuple[str, str | None] | None:
     import tkinter as tk
     from tkinter import ttk
 
     models = fetch_model_uris()  # must come from collection; raises if unavailable
+    qvals = list(map(str, QUANTS))
 
     root = tk.Tk()
     root.title(title)
@@ -51,16 +52,24 @@ def launch_form(*, title: str = "World Engine") -> str | None:
     cmb.bind("<Return>", lambda _e: run())  # Enter to Run
     cmb.focus_set()
 
-    selected: dict[str, str | None] = {"uri": None}
+    selected: dict[str, str | None] = {"uri": None, "quant": None}
+
+    ttk.Label(frm, text="Quantization:").grid(row=1, column=0, sticky="w", padx=(0, 8), pady=(0, 8))
+    qvar = tk.StringVar(value=qvals[0])
+    qcmb = ttk.Combobox(frm, textvariable=qvar, values=qvals, state="readonly", width=52)
+    qcmb.grid(row=1, column=1, sticky="ew", pady=(0, 8))
+    qcmb.bind("<Return>", lambda _e: run())  # Enter to Run
 
     def run() -> None:
         selected["uri"] = var.get()
+        q = qvar.get()
+        selected["quant"] = None if q == qvals[0] else q
         root.destroy()
 
-    ttk.Button(frm, text="Run", command=run).grid(row=1, column=1, sticky="e")
+    ttk.Button(frm, text="Run", command=run).grid(row=2, column=1, sticky="e")
 
     root.mainloop()
-    return selected["uri"]
+    return (selected["uri"], selected["quant"]) if selected["uri"] else None
 
 
 @functools.lru_cache
@@ -170,6 +179,7 @@ async def main(
     model_uri: str,
     n_frames: int = 4096,
     device: str = "cuda",
+    quant: str | None = None,
 ) -> None:
     seed = await asyncio.to_thread(load_seed_frame)
 
@@ -178,7 +188,7 @@ async def main(
         device=device,
         model_config_overrides={"n_frames": n_frames},
         apply_patches=True,
-        quant=None,
+        quant=quant,
     )
     await run_loop(engine=engine, seed=seed, n_frames=n_frames)
 
@@ -200,7 +210,8 @@ def ensure_hf_token() -> None:
 if __name__ == "__main__":
     ensure_hf_token()
     while True:
-        uri = launch_form()
-        if not uri:
+        sel = launch_form()
+        if not sel:
             break
-        asyncio.run(main(model_uri=uri))
+        uri, quant = sel
+        asyncio.run(main(model_uri=uri, quant=quant))
