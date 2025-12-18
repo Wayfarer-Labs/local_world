@@ -13,19 +13,19 @@ import torchvision
 from world_engine import WorldEngine, CtrlInput
 
 
-def fetch_model_uris(*, owner: str = "OpenWorldLabs", collection: str = "cod-nightly") -> list[str]:
-    """Models from https://huggingface.co/collections/OpenWorldLabs/cod-nightly, reverse-lex."""
+def fetch_model_uris(collection_uri: str = "OpenWorldLabs/nightly") -> list[str]:
+    """Models from collection most recent first."""
     from huggingface_hub import get_collection
 
-    coll = get_collection(f"{owner}/{collection}")
+    coll = get_collection(collection_uri)
     models = [
         it.item_id
         for it in getattr(coll, "items", [])
         if getattr(it, "item_type", None) == "model"
     ]
     if not models:
-        raise RuntimeError(f"No models found in Hugging Face collection {owner}/{collection}")
-    return sorted(models, reverse=True)
+        raise RuntimeError(f"No models found in Hugging Face collection {collection_uri}")
+    return list(reversed(models))
 
 
 def launch_form(*, title: str = "World Engine") -> str | None:
@@ -46,7 +46,9 @@ def launch_form(*, title: str = "World Engine") -> str | None:
 
     var = tk.StringVar(value=models[0])
     cmb = ttk.Combobox(frm, textvariable=var, values=models, state="readonly", width=52)
+    cmb.configure(state="normal")
     cmb.grid(row=0, column=1, sticky="ew", pady=(0, 8))
+    cmb.bind("<Return>", lambda _e: run())  # Enter to Run
     cmb.focus_set()
 
     selected: dict[str, str | None] = {"uri": None}
