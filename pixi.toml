@@ -1,7 +1,7 @@
 [workspace]
 name = "LocalWorld"
 channels = ["conda-forge"]
-platforms = ["win-64"]
+platforms = ["win-64", "linux-64"]
 
 [dependencies]
 python = "3.10.*"
@@ -20,7 +20,12 @@ index-strategy = "unsafe-best-match"
 world_engine = { git = "https://github.com/Wayfarer-Labs/world_engine.git" }
 pygame = "*"
 huggingface_hub = { version = "*", extras = ["hf_xet"] }
+
+[target.win-64.pypi-dependencies]
 triton-windows = ">=3.5"
+
+[target.linux-64.pypi-dependencies]
+triton = ">=3.5"
 
 [tasks]
 client = "python src/client.py"
