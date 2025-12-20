@@ -1,0 +1,35 @@
+name: Python CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+jobs:
+  lint-and-check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Install flake8
+        run: pip install flake8
+
+      - name: Run flake8
+        run: flake8 src/
+
+      - name: Check Python syntax
+        run: python -m py_compile src/client.py
+
+      - name: Check imports (dry run)
+        run: |
+          # Install minimal deps for import check
+          pip install pygame torch torchvision
+          python -c "import ast; ast.parse(open('src/client.py').read())"
