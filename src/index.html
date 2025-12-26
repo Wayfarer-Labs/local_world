@@ -84,11 +84,11 @@
             Your browser does not support the video tag.
           </video>
 
-          <!-- Terminal Status Display (inside container to be masked) -->
+          <!-- Terminal Status Display -->
           <div class="terminal-status" id="terminal-status">
             <span class="terminal-prompt">&gt;</span>
             <span class="terminal-text" id="terminal-text">INITIALIZING WORLD CLIENT...</span>
-            <span class="terminal-cursor"></span>
+            <input type="text" class="terminal-input" id="terminal-input" placeholder="" autocomplete="off" spellcheck="false" />
           </div>
 
           <div class="video-mask"></div>
@@ -103,8 +103,8 @@
         <img src="assets/holo-frame.svg" alt="" class="hud-frame" />
       </div>
 
-      <!-- Settings Panel (Right) -->
-      <div id="settings-panel" class="panel panel-right">
+      <!-- Settings Panel (Left) -->
+      <div id="settings-panel" class="panel panel-left">
         <div class="panel-header">
           <span class="panel-title">SETTINGS</span>
           <button id="settings-close" class="panel-close">

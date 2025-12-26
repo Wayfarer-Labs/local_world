@@ -196,7 +196,7 @@ const TerminalStatus = {
   typewriterTimeout: null,
 
   messages: {
-    cold: 'AWAITING CONNECTION...',
+    cold: 'ENTER KEY:',
     warm: 'ESTABLISHING LINK...',
     hot: 'CONNECTED'
   },
@@ -261,6 +261,38 @@ const TerminalStatus = {
 window.TerminalStatus = TerminalStatus;
 
 // ============================================
+// Terminal Input Auto-resize
+// ============================================
+
+function setupTerminalInput() {
+  const input = document.getElementById('terminal-input');
+  if (!input) return;
+
+  // Create a hidden span to measure text width
+  const measureSpan = document.createElement('span');
+  measureSpan.style.cssText = `
+    position: absolute;
+    visibility: hidden;
+    white-space: pre;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  `;
+  document.body.appendChild(measureSpan);
+
+  function resizeInput() {
+    measureSpan.textContent = input.value || '';
+    // Add small buffer for caret, minimum 1ch
+    const width = Math.max(measureSpan.offsetWidth + 12, 10);
+    input.style.width = `${width}px`;
+  }
+
+  input.addEventListener('input', resizeInput);
+  resizeInput(); // Initial size
+}
+
+// ============================================
 // Window Controls
 // ============================================
 
@@ -292,23 +324,19 @@ function setupPanels() {
   const settingsPanel = document.getElementById('settings-panel');
   const settingsToggle = document.getElementById('settings-toggle');
   const settingsClose = document.getElementById('settings-close');
+  const video = document.querySelector('.video-container video');
 
-  const baseWidth = 800;
-  const panelWidth = 250;
+  function toggleSettingsPanel() {
+    const isOpening = !settingsPanel?.classList.contains('open');
+    settingsPanel?.classList.toggle('open');
 
-  async function toggleSettingsPanel() {
-    const isOpen = settingsPanel?.classList.contains('open');
-    const size = await appWindow.innerSize();
-    const height = size.height / window.devicePixelRatio;
-
-    if (isOpen) {
-      settingsPanel?.classList.remove('open');
-      setTimeout(async () => {
-        await appWindow.setSize(new window.__TAURI__.dpi.LogicalSize(baseWidth, height));
-      }, 300);
-    } else {
-      await appWindow.setSize(new window.__TAURI__.dpi.LogicalSize(baseWidth + panelWidth, height));
-      settingsPanel?.classList.add('open');
+    // Pause/resume video when settings panel toggles
+    if (video) {
+      if (isOpening) {
+        video.pause();
+      } else {
+        video.play();
+      }
     }
   }
 
@@ -348,12 +376,15 @@ function setupPanels() {
 function setupPlayButton() {
   const playBtn = document.getElementById('play-btn');
   const logoContainer = document.getElementById('logo-container');
+  const terminalInput = document.getElementById('terminal-input');
 
   playBtn?.addEventListener('click', async () => {
     // Step through states one at a time for testing
     const currentState = PortalState.getState();
 
     if (currentState === PortalState.COLD) {
+      // Clear the terminal input when leaving cold state
+      if (terminalInput) terminalInput.value = '';
       await PortalState.setState(PortalState.WARM);
     } else if (currentState === PortalState.WARM) {
       await PortalState.setState(PortalState.HOT);
@@ -371,6 +402,7 @@ window.addEventListener("DOMContentLoaded", () => {
   setupWindowControls();
   setupPanels();
   setupPlayButton();
+  setupTerminalInput();
   VideoMask.init();
   PortalState.init();
   TerminalStatus.init();

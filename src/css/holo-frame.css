@@ -80,7 +80,7 @@
   left: 0;
   width: 100%;
   height: 100%;
-  z-index: 3;
+  z-index: 100;
   pointer-events: none; /* Allow clicks to pass through to video controls */
 }
 
@@ -174,24 +174,31 @@
   position: absolute;
   background: rgba(10, 14, 18, 0.95);
   border: 1px solid rgba(120, 255, 245, 0.3);
-  z-index: 0;
+  z-index: 60;
   display: flex;
   flex-direction: column;
   overflow: hidden;
 }
 
-.panel-right {
+.panel-left {
   top: 14%;
-  left: 784px;
+  left: 10%;  /* Align with left edge of video area (80/800 = 10%) */
   width: 0;
   height: 72%;
-  border-left: none;
+  border: none;
   border-radius: 0 8px 8px 0;
   transition: width 0.3s ease, visibility 0s ease 0.3s;
   visibility: hidden;
+  /* Transparent gradient: darker on left, lighter on right */
+  background: linear-gradient(
+    to left,
+    rgba(10, 14, 18, 0.1) 0%,
+    rgba(10, 14, 18, 0.70) 30%,
+    rgba(10, 14, 18, 0.95) 80%
+  );
 }
 
-.panel-right.open {
+.panel-left.open {
   width: 250px;
   visibility: visible;
   transition: width 0.3s ease, visibility 0s ease 0s;
@@ -414,7 +421,7 @@
   color: rgba(120, 255, 245, 0.7);
   transition: all 0.15s ease;
   padding: 0;
-  z-index: 25;
+  z-index: 110;
 }
 
 .panel-toggle:hover {
@@ -461,7 +468,7 @@
   color: rgba(120, 255, 245, 0.7);
   transition: all 0.15s ease;
   padding: 0;
-  z-index: 25;
+  z-index: 110;
   opacity: 0;
   animation: contentFadeIn 0.5s ease-out 1.2s forwards;
 }
@@ -518,18 +525,6 @@
   opacity: 0.6;
 }
 
-.terminal-cursor {
-  display: inline-block;
-  width: 6px;
-  height: 12px;
-  background: rgba(120, 255, 245, 0.8);
-  animation: cursorBlink 1s step-end infinite;
-}
-
-@keyframes cursorBlink {
-  0%, 50% { opacity: 1; }
-  51%, 100% { opacity: 0; }
-}
 
 /* State-specific colors */
 .terminal-status.state-cold {
@@ -544,10 +539,6 @@
   color: rgba(255, 200, 100, 0.5);
 }
 
-.terminal-status.state-warm .terminal-cursor {
-  background: rgba(255, 200, 100, 0.8);
-}
-
 .terminal-status.state-hot {
   color: rgba(100, 255, 150, 0.9);
 }
@@ -556,12 +547,56 @@
   color: rgba(100, 255, 150, 0.5);
 }
 
-.terminal-status.state-hot .terminal-cursor {
-  background: rgba(100, 255, 150, 0.8);
-}
-
 /* Hide terminal when portal is expanded */
 .video-container.connected .terminal-status {
   opacity: 0 !important;
   transition: opacity 0.3s ease;
+}
+
+/* ============================================
+   TERMINAL INLINE INPUT (Cold State)
+   ============================================ */
+
+.terminal-input {
+  width: 1ch; /* Start with minimal width for caret visibility */
+  min-width: 1ch;
+  max-width: 200px;
+  padding: 0;
+  padding-left: 4px;
+  margin: 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: rgba(120, 255, 245, 0.85);
+  background: transparent;
+  border: none;
+  outline: none !important;
+  box-shadow: none !important;
+  text-transform: uppercase;
+  opacity: 0;
+  pointer-events: none;
+  caret-color: rgba(120, 255, 245, 0.9);
+}
+
+.terminal-input:focus {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* Show input in cold state */
+.terminal-status.state-cold .terminal-input {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.terminal-input::placeholder {
+  color: rgba(120, 255, 245, 0.35);
+  text-transform: uppercase;
+}
+
+/* Hide input in other states */
+.terminal-status.state-warm .terminal-input,
+.terminal-status.state-hot .terminal-input {
+  opacity: 0;
+  pointer-events: none;
 }
