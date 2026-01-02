@@ -126,15 +126,35 @@ def seed_form(*, title: str = "Seed") -> str | None:
     return chosen["path"]
 
 
+SEED_FRAME_URLS: list[str] = [
+    "https://gist.github.com/user-attachments/assets/5d91c49a-2ae9-418f-99c0-e93ae387e1de",
+    "https://gist.github.com/user-attachments/assets/4adc5a3d-6980-4d1e-b6e8-9033cdf61c66",
+    "https://gist.github.com/user-attachments/assets/ae398747-de4c-4d43-bac4-54fe61ab0ca8",
+    "https://gist.github.com/user-attachments/assets/9d7336fa-5cec-4c7d-bb65-eaebac0a6336",
+    "https://gist.github.com/user-attachments/assets/55dae2d3-00e3-4d03-bb6c-2c7e0ac70f5f",
+]
+
+
 @functools.lru_cache
-def load_seed_frame(target_size: tuple[int, int] = (360, 640)) -> torch.Tensor | None:
-    """Cached seed frame as (H,W,3) uint8 on GPU"""
-    url = "https://gist.github.com/user-attachments/assets/5d91c49a-2ae9-418f-99c0-e93ae387e1de"
-    urllib.request.urlretrieve(url, "img.png")
-    img = torchvision.io.read_image("img.png")  # torch.uint8, shape (C,H,W)
-    img = img[:3].unsqueeze(0).float()  # (1,3,H,W)
-    frame = F.interpolate(img, size=target_size, mode="bilinear", align_corners=False)[0]  # (3,H,W)
-    return frame.to(dtype=torch.uint8).permute(1, 2, 0).contiguous()  # (H,W,3)
+def _load_seed_frame_from_url(
+    url: str,
+    target_size: tuple[int, int] = (360, 640),
+) -> torch.Tensor:
+    """Cached seed frame as (H,W,3) uint8 on CPU"""
+    # Use a per-URL filename to avoid stomping img.png
+    fn = f"seed_{abs(hash(url))}.png"
+    urllib.request.urlretrieve(url, fn)
+
+    img = torchvision.io.read_image(fn)          # (C,H,W) uint8
+    img = img[:3].unsqueeze(0).float()           # (1,3,H,W)
+    frame = F.interpolate(img, size=target_size, mode="bilinear", align_corners=False)[0]
+    return frame.to(torch.uint8).permute(1, 2, 0).contiguous()  # (H,W,3)
+
+
+def load_seed_frame(target_size: tuple[int, int] = (360, 640)) -> torch.Tensor:
+    import random
+    url = random.choice(SEED_FRAME_URLS)
+    return _load_seed_frame_from_url(url, target_size).clone()
 
 
 def load_seed_frame_from_file(path: str, target_size: tuple[int, int] = (360, 640)) -> torch.Tensor:
@@ -203,24 +223,13 @@ async def run_loop(
     ctrls = ctrl_stream(restart_event=restart, seed_event=seed_req, mouse_sensitivity=mouse_sensitivity)
     limit = max(1, n_frames - 2)
 
-    async def select_seed() -> None:
+    async def reset(*, reload_seed: bool = False) -> None:
         nonlocal seed
-        pygame.event.set_grab(False)
-        pygame.mouse.set_visible(True)
-        pygame.mouse.get_rel()
-        path = seed_form()
-        if path:
-            seed = await asyncio.to_thread(load_seed_frame_from_file, path)
-        else:
-            seed = await asyncio.to_thread(load_seed_frame)
-        pygame.event.set_grab(True)
-        pygame.mouse.set_visible(False)
-        pygame.mouse.get_rel()
-
-    async def reset() -> None:
         await asyncio.to_thread(engine.reset)
-        await select_seed()
-        await reset()
+        if reload_seed or seed is None:
+            seed = await asyncio.to_thread(load_seed_frame)
+        if seed is not None:
+            await asyncio.to_thread(engine.append_frame, seed)
 
     def draw(img: torch.Tensor) -> None:
         img = img.detach()
@@ -234,20 +243,18 @@ async def run_loop(
         pygame.display.flip()
 
     try:
-        if seed is not None:
-            await asyncio.to_thread(engine.append_frame, seed)
+        await reset(reload_seed=True)
 
         frames = 0
         async for ctrl in ctrls:
             if seed_req.is_set():
                 seed_req.clear()
-                await select_seed()
-                await reset()
+                await reset(reload_seed=True)
                 frames = 0
                 continue
             if restart.is_set() or frames >= limit:
                 restart.clear()
-                await reset()
+                await reset(reload_seed=False)
                 frames = 0
 
             img = await asyncio.to_thread(engine.gen_frame, ctrl=ctrl)
