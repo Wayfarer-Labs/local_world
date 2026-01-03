@@ -205,17 +205,37 @@ def load_seed_frame_from_file(path: str, target_size: tuple[int, int] = (360, 64
     return frame.to(dtype=torch.uint8).permute(1, 2, 0).contiguous()
 
 
+# pygame keycode -> Windows VK int (main ANSI rows only)
+PYGAME_TO_VK = (
+    {pygame.key.key_code(ch): ord(ch) for ch in "1234567890"}  # 1..0
+    | {pygame.K_MINUS: 0xBD, pygame.K_EQUALS: 0xBB}            # - =
+    | {pygame.key.key_code(ch): ord(ch.upper()) for ch in "qwertyuiop"}
+    | {pygame.K_LEFTBRACKET: 0xDB, pygame.K_RIGHTBRACKET: 0xDD, pygame.K_BACKSLASH: 0xDC}  # [ ] \|
+    | {pygame.key.key_code(ch): ord(ch.upper()) for ch in "asdfghjkl"}
+    | {pygame.K_SEMICOLON: 0xBA, pygame.K_QUOTE: 0xDE}         # ;: '"
+    | {pygame.key.key_code(ch): ord(ch.upper()) for ch in "zxcvbnm"}
+    | {pygame.K_COMMA: 0xBC, pygame.K_PERIOD: 0xBE, pygame.K_SLASH: 0xBF}  # ,< .> /?
+    | {pygame.K_SPACE: 0x20, pygame.K_LSHIFT: 0x10, pygame.K_RSHIFT: 0x10}
+)
+
+
+# enable all
+WHITELIST_KEYS = frozenset(PYGAME_TO_VK.values()) | frozenset({0x01, 0x02, 0x04})
+
+
 async def ctrl_stream(
     restart_event: asyncio.Event,
     seed_event: asyncio.Event,
     mouse_sensitivity: float = 1.5,
+    whitelisted_keys=None,
 ) -> AsyncIterator[CtrlInput]:
+    whitelisted_keys = WHITELIST_KEYS if whitelisted_keys is None else whitelisted_keys
+
     codes = (
-        {("k", pygame.key.key_code(ch)): ord(ch.upper()) for ch in "wasdr"} |  # optionally "f"
-        {("k", pygame.K_SPACE): ord(" ")} |
-        {("k", pygame.K_LSHIFT): 0x10, ("k", pygame.K_RSHIFT): 0x10} |
+        {("k", k): v for k, v in PYGAME_TO_VK.items()} |
         {("m", 1): 0x01, ("m", 2): 0x04, ("m", 3): 0x02}  # note: pygame has middle wheel as m2
     )
+    codes = {k: v for k, v in codes.items() if v in whitelisted_keys}
 
     while True:
         btn: set[int] = set()
@@ -240,7 +260,10 @@ async def ctrl_stream(
         btn.update(c for (kind, raw), c in codes.items() if kind == "k" and pressed[raw])
 
         mb = pygame.mouse.get_pressed(3)
-        btn.update(codes[("m", i)] for i, down in enumerate(mb, 1) if down)
+        btn.update(
+            c for i, down in enumerate(mb, 1)
+            if down and (c := codes.get(("m", i))) is not None
+        )
 
         dx, dy = pygame.mouse.get_rel()
         yield CtrlInput(button=btn, mouse=(dx * mouse_sensitivity, dy * mouse_sensitivity))
