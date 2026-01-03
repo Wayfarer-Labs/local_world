@@ -233,10 +233,12 @@ async def ctrl_stream(
     whitelisted_keys = WHITELIST_KEYS if whitelisted_keys is None else whitelisted_keys
 
     codes = (
-        {("k", k): v for k, v in PYGAME_TO_VK.items()} |
-        {("m", 1): 0x01, ("m", 2): 0x04, ("m", 3): 0x02}  # note: pygame has middle wheel as m2
+        {("k", k): v for k, v in PYGAME_TO_VK.items()}
+        | {("m", 1): 0x01, ("m", 2): 0x04, ("m", 3): 0x02}  # note: pygame has middle wheel as m2
     )
     codes = {k: v for k, v in codes.items() if v in whitelisted_keys}
+
+    held: set[int] = set()
 
     while True:
         btn: set[int] = set()
@@ -244,6 +246,7 @@ async def ctrl_stream(
         for e in pygame.event.get():  # edge presses + drain
             if e.type == pygame.QUIT:
                 return
+
             if e.type == pygame.KEYDOWN:
                 if e.key == pygame.K_ESCAPE:
                     return
@@ -253,17 +256,23 @@ async def ctrl_stream(
                     seed_select_event.set()
                 if e.key == pygame.K_DELETE:
                     seed_event.set()
-                if (c := codes.get(("k", e.key))) is not None:
+
+                c = codes.get(("k", e.key))
+                if c is not None:
                     btn.add(c)
+                    held.add(c)
+
+            elif e.type == pygame.KEYUP:
+                c = codes.get(("k", e.key))
+                if c is not None:
+                    held.discard(c)
+
             elif e.type == pygame.MOUSEBUTTONDOWN:
-                if (c := codes.get(("m", e.button))) is not None:
+                c = codes.get(("m", e.button))
+                if c is not None:
                     btn.add(c)
 
-        pressed = pygame.key.get_pressed()
-        btn.update(
-            c for (kind, raw), c in codes.items()
-            if kind == "k" and pressed[pygame.key.get_scancode_from_key(raw)]
-        )
+        btn.update(held)
 
         mb = pygame.mouse.get_pressed(3)
         btn.update(
