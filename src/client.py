@@ -152,7 +152,7 @@ def seed_form(*, title: str = "Seed") -> str | None:
 
     ttk.Label(frm, text="Prompt").grid(row=1, column=0, sticky="w", padx=(0, 8), pady=(0, 8))
     ent = ttk.Entry(frm, width=52)
-    ent.insert(0, "Sample prompt")
+    ent.insert(0, "A fun game")
     ent.configure(state="disabled")
     ent.grid(row=1, column=1, columnspan=2, sticky="ew", pady=(0, 8))
 
@@ -294,43 +294,92 @@ async def run_loop(
 ) -> None:
     pygame.init()
     screen = pygame.display.set_mode((1920, 1080), pygame.RESIZABLE)
-    pygame.event.set_grab(True)
-    pygame.display.set_caption("U=restart, DEL=random seed, INSERT=select seed, ESC=menu")
+    pygame.display.set_caption("Set mouse sensitivity (drag). Enter=start, Esc=menu")
 
-    restart = asyncio.Event()
-    seed_req = asyncio.Event()
-    seed_select = asyncio.Event()
-    ctrls = ctrl_stream(
-        restart_event=restart,
-        seed_event=seed_req,
-        seed_select_event=seed_select,
-        mouse_sensitivity=mouse_sensitivity
-    )
-    limit = max(1, n_frames - 2)
+    SENS_MIN, SENS_MAX, SENS_DEFAULT = 0.2, 20.0, 1.5
+    sens = max(SENS_MIN, min(SENS_MAX, float(mouse_sensitivity or SENS_DEFAULT)))
 
-    async def reset(*, reload_seed: bool = False, seed_path: str | None = None) -> None:
-        nonlocal seed
-        await asyncio.to_thread(engine.reset)
-        if reload_seed or seed is None:
-            if seed_path:
-                seed = await asyncio.to_thread(load_seed_frame_from_file, seed_path)
-            else:
-                seed = await asyncio.to_thread(load_seed_frame)
-        if seed is not None:
-            await asyncio.to_thread(engine.append_frame, seed)
+    async def pick_sensitivity() -> float | None:
+        nonlocal sens
+        pygame.event.set_grab(False)
+        pygame.mouse.set_visible(True)
+        font = pygame.font.SysFont(None, 22)
+        clock = pygame.time.Clock()
+        dragging = False
 
-    def draw(img: torch.Tensor) -> None:
-        img = img.detach()
-        if img.dtype != torch.uint8:
-            img = img.clamp(0, 255).to(torch.uint8)
+        while True:
+            r = pygame.Rect(24, screen.get_height() - 48, 320, 12)
+            knob_x = int(r.left + (sens - SENS_MIN) * r.width / (SENS_MAX - SENS_MIN))
+            knob = pygame.Rect(knob_x - 7, r.centery - 11, 14, 22)
 
-        frame = img.cpu().numpy()  # (H,W,3)
-        surf = pygame.surfarray.make_surface(frame.swapaxes(0, 1))  # (W,H,3)
-        surf = pygame.transform.scale(surf, screen.get_size())
-        screen.blit(surf, (0, 0))
-        pygame.display.flip()
+            for e in pygame.event.get():
+                if e.type == pygame.QUIT:
+                    return None
+                if e.type == pygame.KEYDOWN:
+                    if e.key in (pygame.K_RETURN, pygame.K_KP_ENTER):
+                        return sens
+                    if e.key == pygame.K_ESCAPE:
+                        return None
+                if e.type == pygame.MOUSEBUTTONDOWN and e.button == 1:
+                    if knob.collidepoint(e.pos) or r.inflate(0, 20).collidepoint(e.pos):
+                        dragging = True
+                if e.type == pygame.MOUSEBUTTONUP and e.button == 1:
+                    dragging = False
+                if e.type == pygame.MOUSEMOTION and dragging:
+                    t = (e.pos[0] - r.left) / max(1, r.width)
+                    t = 0.0 if t < 0.0 else 1.0 if t > 1.0 else t
+                    sens = SENS_MIN + t * (SENS_MAX - SENS_MIN)
+
+            screen.fill((0, 0, 0))
+            screen.blit(font.render("Mouse sensitivity", True, (255, 255, 255)), (24, r.top - 28))
+            screen.blit(font.render(f"{sens:.2f}", True, (255, 255, 255)), (r.right + 12, r.top - 6))
+            pygame.draw.rect(screen, (80, 80, 80), r)
+            pygame.draw.rect(screen, (220, 220, 220), knob)
+            pygame.display.flip()
+
+            clock.tick(60)
+            await asyncio.sleep(0)
 
     try:
+        picked = await pick_sensitivity()
+        if picked is None:
+            return
+        mouse_sensitivity = picked
+        pygame.event.set_grab(True)
+        pygame.display.set_caption("U=restart, DEL=random seed, INSERT=select seed, ESC=menu")
+
+        restart = asyncio.Event()
+        seed_req = asyncio.Event()
+        seed_select = asyncio.Event()
+        ctrls = ctrl_stream(
+            restart_event=restart,
+            seed_event=seed_req,
+            seed_select_event=seed_select,
+            mouse_sensitivity=mouse_sensitivity,
+        )
+        limit = max(1, n_frames - 2)
+
+        async def reset(*, reload_seed: bool = False, seed_path: str | None = None) -> None:
+            nonlocal seed
+            await asyncio.to_thread(engine.reset)
+            if reload_seed or seed is None:
+                if seed_path:
+                    seed = await asyncio.to_thread(load_seed_frame_from_file, seed_path)
+                else:
+                    seed = await asyncio.to_thread(load_seed_frame)
+            if seed is not None:
+                await asyncio.to_thread(engine.append_frame, seed)
+
+        def draw(img: torch.Tensor) -> None:
+            img = img.detach()
+            if img.dtype != torch.uint8:
+                img = img.clamp(0, 255).to(torch.uint8)
+            frame = img.cpu().numpy()  # (H,W,3)
+            surf = pygame.surfarray.make_surface(frame.swapaxes(0, 1))  # (W,H,3)
+            surf = pygame.transform.scale(surf, screen.get_size())
+            screen.blit(surf, (0, 0))
+            pygame.display.flip()
+
         await reset(reload_seed=True)
 
         frames = 0
