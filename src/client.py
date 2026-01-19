@@ -11,6 +11,7 @@ import pygame
 import torch
 import torch.nn.functional as F
 import torchvision
+from concurrent.futures import ThreadPoolExecutor
 
 from world_engine import WorldEngine, CtrlInput, QUANTS
 
@@ -424,6 +425,15 @@ async def main(
     device: str = "cuda",
     quant: str | None = None,
 ) -> None:
+
+    # warmup cublas
+    asyncio.get_running_loop().set_default_executor(ThreadPoolExecutor(max_workers=1))
+
+    def _cuda_warmup() -> None:
+        with torch.cuda.device(device):
+            torch.cuda.current_blas_handle()
+    await asyncio.to_thread(_cuda_warmup)
+
     seed = None
 
     engine = WorldEngine(
