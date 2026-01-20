@@ -16,7 +16,7 @@ from concurrent.futures import ThreadPoolExecutor
 from world_engine import WorldEngine, CtrlInput, QUANTS
 
 
-def fetch_model_uris(org_uri: str = "OverWorld") -> list[str]:
+def fetch_model_uris(org_uri: str = "Overworld") -> list[str]:
     """Models from an author/org on the Hub, most recent first."""
     from huggingface_hub import HfApi
     from huggingface_hub.errors import HfHubHTTPError
