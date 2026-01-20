@@ -25,7 +25,7 @@ huggingface_hub = { version = "*", extras = ["hf_xet"] }
 triton-windows = "==3.5.1.post23"
 
 [target.linux-64.pypi-dependencies]
-triton = "==3.5.1"
+triton = ">=3.5.1"
 
 [tasks]
 client = "python src/client.py"
