@@ -115,7 +115,7 @@ environments:
       - pypi: https://d21usjoq99fcb9.cloudfront.net/whl/nightly/typing_extensions-4.15.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/39/08/aaaad47bc4e9dc8c725e68f9d04865dbcb2052843ff09c97b08904852d84/urllib3-2.6.3-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/af/b5/123f13c975e9f27ab9c0770f514345bd406d0e8d3b7a0723af9d43f710af/wcwidth-0.2.14-py2.py3-none-any.whl
-      - pypi: git+https://github.com/Wayfarer-Labs/world_engine.git#e5fc81fc73d9db8b7fc62e6e45a530ac407828cf
+      - pypi: git+https://github.com/Wayfarer-Labs/world_engine.git#cb4ad0c80a98334159d792f9bcefca256a3eda91
       - pypi: https://files.pythonhosted.org/packages/2e/54/647ade08bf0db230bfea292f893923872fd20be6ac6f53b2b936ba839d75/zipp-3.23.0-py3-none-any.whl
       win-64:
       - conda: https://conda.anaconda.org/conda-forge/win-64/bzip2-1.0.8-h0ad9c76_8.conda
@@ -186,7 +186,7 @@ environments:
       - pypi: https://d21usjoq99fcb9.cloudfront.net/whl/nightly/typing_extensions-4.15.0-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/39/08/aaaad47bc4e9dc8c725e68f9d04865dbcb2052843ff09c97b08904852d84/urllib3-2.6.3-py3-none-any.whl
       - pypi: https://files.pythonhosted.org/packages/af/b5/123f13c975e9f27ab9c0770f514345bd406d0e8d3b7a0723af9d43f710af/wcwidth-0.2.14-py2.py3-none-any.whl
-      - pypi: git+https://github.com/Wayfarer-Labs/world_engine.git#e5fc81fc73d9db8b7fc62e6e45a530ac407828cf
+      - pypi: git+https://github.com/Wayfarer-Labs/world_engine.git#cb4ad0c80a98334159d792f9bcefca256a3eda91
       - pypi: https://files.pythonhosted.org/packages/2e/54/647ade08bf0db230bfea292f893923872fd20be6ac6f53b2b936ba839d75/zipp-3.23.0-py3-none-any.whl
 packages:
 - conda: https://conda.anaconda.org/conda-forge/linux-64/_libgcc_mutex-0.1-conda_forge.tar.bz2
@@ -2621,7 +2621,7 @@ packages:
   - pkg:pypi/wheel?source=hash-mapping
   size: 62931
   timestamp: 1733130309598
-- pypi: git+https://github.com/Wayfarer-Labs/world_engine.git#e5fc81fc73d9db8b7fc62e6e45a530ac407828cf
+- pypi: git+https://github.com/Wayfarer-Labs/world_engine.git#cb4ad0c80a98334159d792f9bcefca256a3eda91
   name: world-engine
   version: 0.0.3
   requires_dist:
